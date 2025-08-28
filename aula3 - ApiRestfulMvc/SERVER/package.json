@@ -11,8 +11,10 @@
   "license": "ISC",
   "dependencies": {
     "body": "^5.1.0",
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "method-override": "^3.0.0",
+    "mongoose": "^8.18.0",
     "parser": "^0.1.4"
   }
 }

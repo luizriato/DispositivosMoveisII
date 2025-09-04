@@ -38,9 +38,25 @@ app.listen(port, () => {
 });
 
 // Routes
-app.get('/', (req, res) => {
-    res.send({ status: 'ok' });
+app.get('/', async (req, res) => {
+    try {
+        const users = await User.find({});
+        if(users.length > 0){
+            res.json(users);
+        } else {
+            res.json({"status": "não há usuários"});
+        }
+    } catch (err) {
+        res.status(500).json({error: err.message});
+    }
 });
+
+
+app.get('/:id', async(req, res) => {
+    let id = req.params.id;
+    let user = await User.findOne({_id: id});
+    res.json(user);
+})
 
 app.delete('/deletar', async (req, res) => {
     let corpo = req.body.name;

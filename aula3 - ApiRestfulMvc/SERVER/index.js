@@ -38,6 +38,9 @@ app.listen(port, () => {
 });
 
 // Routes
+// Ignora favicon.ico para evitar CastError
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 app.get('/', async (req, res) => {
     try {
         const users = await User.find({});

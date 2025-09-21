@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // NOVO: Importar o Alert para a caixa de diálogo de confirmação
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Modal, Portal, Text, Button, Provider, List, ActivityIndicator, TextInput, FAB } from 'react-native-paper';
+import { Modal, Portal, Text, Button, Provider, List, ActivityIndicator, TextInput, FAB, Dialog } from 'react-native-paper';
 import { Platform } from "react-native";
 
 const API_URL =
@@ -18,6 +18,7 @@ const API_URL =
       const [editModalVisible, setEditModalVisible] = useState(false);
       const [newUserName, setNewUserName] = useState('');
       const [editUserName, setEditUserName] = useState('');
+      const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
 
   const showModal = (user) => {
     setSelectedUser(user);
@@ -33,7 +34,7 @@ const API_URL =
     fetchUsers().finally(() => setLoading(false));
   }, []);
 
-  // NOVO: Função para deletar o usuário
+  // Função para deletar o usuário
   const handleDelete = async (userId) => {
     try {
       const response = await fetch(`${API_URL}/deletar/${userId}`, {
@@ -55,30 +56,8 @@ const API_URL =
     }
   };
 
-  // NOVO: Função que mostra a confirmação antes de deletar
-// NOVO: Função que mostra a confirmação antes de deletar
-const confirmDelete = (user) => {
-  // PRIMEIRO, fecha o modal de detalhes
-  hideModal(); 
-  
-    // DEPOIS, exibe o alerta
-    Alert.alert(
-      "Confirmar Exclusão", // Título
-      `Tem certeza que deseja deletar o usuário "${user.nome}"?`, // Mensagem
-      [
-        {
-          text: "Cancelar",
-          onPress: () => console.log("Deleção cancelada"),
-          style: "cancel"
-        },
-        { 
-          text: "Confirmar", 
-          onPress: () => handleDelete(user._id),
-          style: "destructive" // Deixa o texto vermelho no iOS
-        }
-      ],
-      { cancelable: true } // Permite fechar clicando fora (Android)
-    );
+  const confirmDelete = (user) => {
+    setDeleteDialogVisible(true);
   };
 
   // Função para inserir novo usuário
@@ -219,8 +198,8 @@ const confirmDelete = (user) => {
                     style={styles.modalButton}
                     icon="trash-can-outline"
                     mode="contained" 
-                    buttonColor={styles.deleteButton.backgroundColor} // Cor vermelha
-                    onPress={() => confirmDelete(selectedUser)}>
+                    buttonColor="#d9534f" // Cor vermelha, passada DIRETAMENTE
+                    onPress={confirmDelete}>
                     Deletar
                   </Button>
                 </View>
@@ -297,6 +276,25 @@ const confirmDelete = (user) => {
               </View>
             </View>
           </Modal>
+          <Dialog visible={deleteDialogVisible} onDismiss={() => setDeleteDialogVisible(false)}>
+          <Dialog.Title>Confirmar Exclusão</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              Tem certeza que deseja deletar o usuário "{selectedUser?.nome}"?
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteDialogVisible(false)}>Cancelar</Button>
+            <Button 
+              textColor="#d9534f" // Cor vermelha para o texto
+              onPress={() => {
+                setDeleteDialogVisible(false); // Fecha o diálogo
+                handleDelete(selectedUser._id); // Executa a exclusão
+              }}>
+              Confirmar
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
         </Portal>
 
         <ScrollView>
@@ -352,19 +350,19 @@ const styles = StyleSheet.create({
   },
   textInput: {
     marginVertical: 10,
+    backgroundColor: 'white',
   },
   buttonContainer: {
-    flexDirection: 'row',
+    flexDirection: 'collumn',
     justifyContent: 'space-between',
     marginTop: 20,
   },
   modalButton: {
-    flex: 1, // Faz os botões ocuparem espaço igual
-    marginHorizontal: 5, // Adiciona um espaçamento entre eles
+   marginVertical: 5, // Adiciona um espaçamento entre eles
   },
-  deleteButton: {
-    backgroundColor: '#d9534f', // Um tom de vermelho
-  },
+  // deleteButton: {
+  //   backgroundColor: '#d9534f', // Um tom de vermelho
+  // },
   fab: {
     position: 'absolute',
     margin: 16,

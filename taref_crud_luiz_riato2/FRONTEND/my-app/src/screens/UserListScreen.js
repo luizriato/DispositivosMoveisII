@@ -15,7 +15,7 @@ import {
   Text
 } from 'react-native-paper';
 
-import UserList from '../components/UserList';
+// import UserList from '../components/UserList';
 import UserDetailsModal from '../components/UserDetailsModal';
 import UserFormModal from '../components/UserFormModal';
 import DeleteConfirmationDialog from '../components/DeleteConfirmationDialog';
@@ -263,7 +263,7 @@ const UserListScreen = ({ currentUser, onLogout, onNavigateToFuncionarios, onNav
 
                 </Portal>
 
-                <UserList users={users} onUserPress={handleOpenDetails} />
+                {/* <UserList users={users} onUserPress={handleOpenDetails} /> */}
 
                 <FAB
                     style={styles.fab}

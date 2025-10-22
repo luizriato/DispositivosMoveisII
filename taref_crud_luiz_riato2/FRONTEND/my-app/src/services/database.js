@@ -1,36 +1,42 @@
 import * as SQLite from "expo-sqlite";
 
-// --- Interfaces para os Registros ---
-
-export interface Usuario {
-  id: number;
-  nome: string;
-  email: string;
-  senha: string;
-  data_nascimento: string;
-  matricula: string;
-  endereco: string; // JSON string
-}
-
-export interface Funcao {
-  id_funcao: number;
-  nome_funcao: string;
-}
-
-export interface Cargo {
-  id_cargo: number;
-  nome_cargo: string;
-  id_funcionario_fk: number;
-  id_funcao_fk: number;
-}
+// --- Tipos para os Registros ---
+// Nota: Em JavaScript puro, usamos comentários JSDoc para documentar os tipos
 
 /**
- * Interface para consultas com JOIN, trazendo nomes de outras tabelas.
+ * @typedef {Object} Usuario
+ * @property {number} id
+ * @property {string} nome
+ * @property {string} email
+ * @property {string} senha
+ * @property {string} data_nascimento
+ * @property {string} matricula
+ * @property {string} endereco - JSON string
  */
-export interface CargoCompleto extends Cargo {
-  nome_funcionario: string;
-  nome_funcao: string;
-}
+
+/**
+ * @typedef {Object} Funcao
+ * @property {number} id_funcao
+ * @property {string} nome_funcao
+ */
+
+/**
+ * @typedef {Object} Cargo
+ * @property {number} id_cargo
+ * @property {string} nome_cargo
+ * @property {number} id_funcionario_fk
+ * @property {number} id_funcao_fk
+ */
+
+/**
+ * @typedef {Object} CargoCompleto
+ * @property {number} id_cargo
+ * @property {string} nome_cargo
+ * @property {number} id_funcionario_fk
+ * @property {number} id_funcao_fk
+ * @property {string} nome_funcionario
+ * @property {string} nome_funcao
+ */
 
 // --- Funções do Banco ---
 
@@ -111,11 +117,20 @@ async function inserirUsuario(
   endereco = null
 ) {
   try {
+    console.log("Tentando inserir usuário:", { nome, email, data_nascimento });
+    
+    // Primeiro verifica se o email já existe
+    const usuarioExistente = await buscarUsuarioPorEmail(db, email);
+    if (usuarioExistente) {
+      console.log("Email já existe:", email);
+      return null;
+    }
+    
     const result = await db.runAsync(
       "INSERT INTO usuario (nome, email, senha, data_nascimento, matricula, endereco) VALUES (?, ?, ?, ?, ?, ?)",
       [nome, email, senha, data_nascimento, matricula, endereco]
     );
-    console.log("Usuário inserido, ID:", result.lastInsertRowId);
+    console.log("Usuário inserido com sucesso, ID:", result.lastInsertRowId);
     return result.lastInsertRowId;
   } catch (error) {
     console.log("Erro ao inserir usuário: " + error);
@@ -144,10 +159,18 @@ async function buscarUsuarioPorEmail(db, email) {
 
 async function autenticarUsuario(db, email, senha) {
   try {
+    console.log("Tentando autenticar usuário:", email);
     const result = await db.getFirstAsync(
       "SELECT * FROM usuario WHERE email = ? AND senha = ?", 
       [email, senha]
     );
+    
+    if (result) {
+      console.log("Usuário autenticado com sucesso:", result.nome);
+    } else {
+      console.log("Usuário não encontrado ou senha incorreta");
+    }
+    
     return result;
   } catch (error) {
     console.log("Erro ao autenticar usuário: " + error);
@@ -377,18 +400,115 @@ async function deletarCargo(db, id) {
 // --- Inicialização do Banco ---
 let database = null;
 
-export async function initDatabase() {
+/**
+ * Função para verificar se as tabelas existem e têm a estrutura correta
+ */
+async function verificarEstruturaBanco(db) {
+  try {
+    // Verifica se a tabela usuario existe e tem as colunas corretas
+    const result = await db.getFirstAsync(`
+      SELECT name FROM sqlite_master 
+      WHERE type='table' AND name='usuario'
+    `);
+    
+    if (!result) {
+      console.log("Tabela usuario não existe, recriando...");
+      return false;
+    }
+    
+    // Verifica se as colunas existem
+    const columns = await db.getAllAsync(`PRAGMA table_info(usuario)`);
+    const columnNames = columns.map(col => col.name);
+    
+    const requiredColumns = ['id', 'nome', 'email', 'senha', 'data_nascimento', 'matricula', 'endereco'];
+    const missingColumns = requiredColumns.filter(col => !columnNames.includes(col));
+    
+    if (missingColumns.length > 0) {
+      console.log("Colunas faltando na tabela usuario:", missingColumns);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.log("Erro ao verificar estrutura do banco:", error);
+    return false;
+  }
+}
+
+/**
+ * Função para recriar o banco de dados
+ */
+async function recriarBanco() {
+  try {
+    const db = await CriaBanco();
+    
+    // Remove todas as tabelas existentes
+    await db.execAsync(`
+      DROP TABLE IF EXISTS cargo;
+      DROP TABLE IF EXISTS funcionario;
+      DROP TABLE IF EXISTS funcao;
+      DROP TABLE IF EXISTS usuario;
+    `);
+    
+    // Recria as tabelas
+    await CriaTabelas(db);
+    console.log("Banco de dados recriado com sucesso");
+    return db;
+  } catch (error) {
+    console.log("Erro ao recriar banco:", error);
+    return null;
+  }
+}
+
+async function initDatabase() {
   if (!database) {
     database = await CriaBanco();
-    await CriaTabelas(database);
+    
+    // Verifica se a estrutura está correta
+    const estruturaCorreta = await verificarEstruturaBanco(database);
+    
+    if (!estruturaCorreta) {
+      console.log("Estrutura do banco incorreta, recriando...");
+      database = await recriarBanco();
+    }
   }
   return database;
+}
+
+/**
+ * Função para forçar a recriação do banco de dados
+ * Use esta função se houver problemas persistentes
+ */
+async function resetDatabase() {
+  try {
+    database = null;
+    const db = await CriaBanco();
+    
+    // Remove todas as tabelas existentes
+    await db.execAsync(`
+      DROP TABLE IF EXISTS cargo;
+      DROP TABLE IF EXISTS funcionario;
+      DROP TABLE IF EXISTS funcao;
+      DROP TABLE IF EXISTS usuario;
+    `);
+    
+    // Recria as tabelas
+    await CriaTabelas(db);
+    database = db;
+    console.log("Banco de dados resetado com sucesso");
+    return db;
+  } catch (error) {
+    console.log("Erro ao resetar banco:", error);
+    return null;
+  }
 }
 
 // --- Exportações ---
 export {
   CriaBanco,
   CriaTabelas,
+  initDatabase,
+  resetDatabase,
   // Usuario
   inserirUsuario,
   consultaUsuarios,

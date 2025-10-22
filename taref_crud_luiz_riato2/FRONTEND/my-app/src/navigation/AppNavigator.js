@@ -11,7 +11,7 @@ import FuncionarioScreen from '../screens/FuncionarioScreen';
 import FuncaoScreen from '../screens/FuncaoScreen';
 import CargoScreen from '../screens/CargoScreen';
 import UsuarioSistemaScreen from '../screens/UsuarioSistemaScreen';
-import { initDatabase } from '../services/database';
+import { initDatabase, resetDatabase } from '../services/database';
 
 const Stack = createStackNavigator();
 
@@ -27,7 +27,10 @@ const AppNavigator = () => {
   const initializeApp = async () => {
     try {
       // Inicializa o banco de dados
+      console.log('Inicializando banco de dados...');
       await initDatabase();
+      console.log('Banco de dados inicializado com sucesso');
+      
       
       // Simula um tempo de carregamento para a splash screen
       setTimeout(() => {
@@ -35,6 +38,15 @@ const AppNavigator = () => {
       }, 3000);
     } catch (error) {
       console.error('Erro ao inicializar app:', error);
+      console.log('Tentando resetar o banco de dados...');
+      
+      try {
+        await resetDatabase();
+        console.log('Banco de dados resetado com sucesso');
+      } catch (resetError) {
+        console.error('Erro ao resetar banco:', resetError);
+      }
+      
       setIsLoading(false);
     }
   };

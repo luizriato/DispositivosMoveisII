@@ -59,7 +59,7 @@ const LoginScreen = ({ onLoginSuccess, onNavigateToRegister }) => {
           onLoginSuccess(usuario);
         });
       } else {
-        showDialog('Erro', 'Email ou senha incorretos.');
+        showDialog('Erro', 'Email ou senha incorretos. Verifique seus dados e tente novamente.');
       }
     } catch (error) {
       console.error('Erro no login:', error);

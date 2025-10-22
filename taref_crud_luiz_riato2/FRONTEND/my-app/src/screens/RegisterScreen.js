@@ -106,7 +106,7 @@ const RegisterScreen = ({ onRegisterSuccess, onNavigateToLogin }) => {
         );
       } else {
         // 4. Substituir Alert.alert
-        showDialog('Erro', 'Erro ao cadastrar usuário. Email já existe ou dados inválidos.');
+        showDialog('Erro', 'Email já existe. Por favor, use outro email ou faça login.');
       }
     } catch (error) {
       console.error('Erro no cadastro:', error);

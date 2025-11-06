@@ -12,6 +12,7 @@ import FuncaoScreen from '../screens/FuncaoScreen';
 import CargoScreen from '../screens/CargoScreen';
 import UsuarioSistemaScreen from '../screens/UsuarioSistemaScreen';
 import { initDatabase, resetDatabase } from '../services/database';
+import { useDatabase } from '../contexts/DatabaseContext';
 
 const Stack = createStackNavigator();
 
@@ -19,6 +20,7 @@ const AppNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const { databaseType } = useDatabase();
 
   useEffect(() => {
     initializeApp();
@@ -26,11 +28,16 @@ const AppNavigator = () => {
 
   const initializeApp = async () => {
     try {
-      // Inicializa o banco de dados
+      // Inicializa o banco de dados (SQLite por padrão se não houver escolha)
       console.log('Inicializando banco de dados...');
-      await initDatabase();
-      console.log('Banco de dados inicializado com sucesso');
+      const dbType = databaseType || 'sqlite';
       
+      if (dbType === 'sqlite') {
+        await initDatabase();
+      }
+      // MongoDB será inicializado no login
+      
+      console.log('Aplicativo inicializado com sucesso');
       
       // Simula um tempo de carregamento para a splash screen
       setTimeout(() => {
@@ -41,8 +48,10 @@ const AppNavigator = () => {
       console.log('Tentando resetar o banco de dados...');
       
       try {
-        await resetDatabase();
-        console.log('Banco de dados resetado com sucesso');
+        if (databaseType === 'sqlite' || !databaseType) {
+          await resetDatabase();
+          console.log('Banco de dados resetado com sucesso');
+        }
       } catch (resetError) {
         console.error('Erro ao resetar banco:', resetError);
       }

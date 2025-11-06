@@ -12,7 +12,8 @@ import {
   Dialog 
 } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import { inserirUsuario, initDatabase } from '../services/database';
+import { inserirUsuario, initDatabase as initUnifiedDatabase, getDatabaseType } from '../services/unifiedDatabase';
+import { useDatabase } from '../contexts/DatabaseContext';
 
 const RegisterScreen = ({ onRegisterSuccess, onNavigateToLogin }) => {
   const [formData, setFormData] = useState({
@@ -24,6 +25,7 @@ const RegisterScreen = ({ onRegisterSuccess, onNavigateToLogin }) => {
     matricula: '',
   });
   const [loading, setLoading] = useState(false);
+  const { databaseType } = useDatabase();
 
   // 2. Adicionar estados para o Dialog
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -84,11 +86,13 @@ const RegisterScreen = ({ onRegisterSuccess, onNavigateToLogin }) => {
 
     setLoading(true);
     try {
-      const db = await initDatabase();
+      // Se não houver banco escolhido, usa SQLite por padrão
+      const dbType = databaseType || 'sqlite';
+      await initUnifiedDatabase(dbType);
+      
       const { nome, email, senha, data_nascimento, matricula } = formData;
       
       const userId = await inserirUsuario(
-        db,
         nome.trim(),
         email.trim(),
         senha,

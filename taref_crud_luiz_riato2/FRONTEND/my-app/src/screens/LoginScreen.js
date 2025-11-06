@@ -9,15 +9,19 @@ import {
   Title, 
   Paragraph, 
   Portal, 
-  Dialog 
+  Dialog,
+  RadioButton
 } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import { autenticarUsuario, initDatabase } from '../services/database';
+import { initDatabase as initUnifiedDatabase, autenticarUsuario } from '../services/unifiedDatabase';
+import { useDatabase } from '../contexts/DatabaseContext';
 
 const LoginScreen = ({ onLoginSuccess, onNavigateToRegister }) => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
+  const [databaseType, setDatabaseType] = useState('sqlite'); // 'sqlite' ou 'mongodb'
+  const { selectDatabase } = useDatabase();
 
   // 2. Adicionar estados para o Dialog
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -51,8 +55,14 @@ const LoginScreen = ({ onLoginSuccess, onNavigateToRegister }) => {
 
     setLoading(true);
     try {
-      const db = await initDatabase();
-      const usuario = await autenticarUsuario(db, email.trim(), senha);
+      // Salva a escolha do banco no contexto
+      selectDatabase(databaseType);
+      
+      // Inicializa o banco escolhido
+      await initUnifiedDatabase(databaseType);
+      
+      // Autentica o usuário
+      const usuario = await autenticarUsuario(email.trim(), senha);
       
       if (usuario) {
         showDialog('Sucesso', 'Login realizado com sucesso!', () => {
@@ -63,10 +73,18 @@ const LoginScreen = ({ onLoginSuccess, onNavigateToRegister }) => {
       }
     } catch (error) {
       console.error('Erro no login:', error);
-      showDialog('Erro', 'Ocorreu um erro ao fazer login. Tente novamente.');
+      showDialog('Erro', `Ocorreu um erro ao fazer login: ${error.message}`);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNavigateToRegister = () => {
+    // 1. Salva a escolha (sqlite ou mongodb) no contexto
+    selectDatabase(databaseType);
+    
+    // 2. Navega para a tela de registro
+    onNavigateToRegister();
   };
 
   return (
@@ -85,6 +103,29 @@ const LoginScreen = ({ onLoginSuccess, onNavigateToRegister }) => {
               <Paragraph style={styles.subtitle}>
                 Faça login para continuar
               </Paragraph>
+
+              {/* Seletor de Banco de Dados */}
+              <View style={styles.databaseSelector}>
+                <Text style={styles.databaseSelectorTitle}>Escolha o banco de dados:</Text>
+                <View style={styles.radioGroup}>
+                  <View style={styles.radioOption}>
+                    <RadioButton
+                      value="sqlite"
+                      status={databaseType === 'sqlite' ? 'checked' : 'unchecked'}
+                      onPress={() => setDatabaseType('sqlite')}
+                    />
+                    <Text style={styles.radioLabel}>SQLite</Text>
+                  </View>
+                  <View style={styles.radioOption}>
+                    <RadioButton
+                      value="mongodb"
+                      status={databaseType === 'mongodb' ? 'checked' : 'unchecked'}
+                      onPress={() => setDatabaseType('mongodb')}
+                    />
+                    <Text style={styles.radioLabel}>MongoDB</Text>
+                  </View>
+                </View>
+              </View>
 
               <TextInput
                 label="Email"
@@ -206,6 +247,31 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     marginLeft: 8,
+  },
+  databaseSelector: {
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  databaseSelectorTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 12,
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  radioOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radioLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
   },
 });
 
